@@ -1,0 +1,17 @@
+# 本番（自宅の LXC）: docker compose up -d --build
+#   Cloudflare Tunnel（cloudflared）からだけ届けばよいので、ホストのループバックに限定
+# 開発: TRANP_INSECURE_COOKIE=1 docker compose up -d --build
+#   平文 HTTP でも席の Cookie が送られるようにする（本番では付けない）
+services:
+  tranp:
+    build: .
+    image: tranp
+    restart: unless-stopped
+    environment:
+      TRANP_INSECURE_COOKIE: ${TRANP_INSECURE_COOKIE:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m

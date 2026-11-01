@@ -1,0 +1,181 @@
+:root {
+  --felt: #14532d;
+  --felt-dark: #0f3d22;
+  --ink: #f8fafc;
+  --muted: #a7c4b0;
+  --card: #fff;
+  --back: #1e3a8a;
+  --accent: #facc15;
+  --red: #dc2626;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: var(--felt);
+  color: var(--ink);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+h1 { margin: 0; font-size: 1.6rem; font-weight: 600; }
+button, .button {
+  font: inherit;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 1.05rem;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--ink);
+  background: rgba(255,255,255,.15);
+}
+button:disabled { opacity: .35; cursor: default; }
+.primary { background: var(--accent); color: #1c1917; font-weight: 600; }
+.secondary { background: rgba(255,255,255,.15); }
+.error { color: #fecaca; min-height: 1.2em; }
+.row { display: flex; gap: 12px; }
+
+.center {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 16px;
+  text-align: center;
+}
+.url {
+  margin: 0;
+  font-size: .95rem;
+  color: var(--muted);
+  word-break: break-all;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ---- game ---- */
+#view-game { height: 100%; display: flex; flex-direction: column; }
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  height: 44px;
+}
+.player {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  opacity: .55;
+}
+.player .label { font-size: .85rem; }
+.player b { font-size: 1.3rem; }
+.player.active { opacity: 1; background: rgba(255,255,255,.15); box-shadow: 0 0 0 2px var(--accent); }
+.dots { display: flex; gap: 8px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.3); }
+.dot.on { background: var(--accent); }
+
+.stage {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px 4px 8px;
+  min-height: 0;
+}
+.nav {
+  width: 40px;
+  padding: 0;
+  font-size: 2rem;
+  line-height: 1;
+  background: transparent;
+  color: var(--ink);
+}
+.board {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+.slot { perspective: 600px; }
+.card { cursor: pointer; }
+body:not(.my-turn) .card { cursor: default; }
+.card .inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .35s;
+}
+.card.up .inner { transform: rotateY(180deg); }
+.card .back, .card .face {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.card .back {
+  background: var(--back);
+  border: 3px solid #fff;
+  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.12) 0 6px, transparent 6px 12px);
+}
+.card .face {
+  background: var(--card);
+  color: #111;
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.1rem, 4.5vh, 2rem);
+  font-weight: 700;
+}
+.card .face.red { color: var(--red); }
+.card.gone { visibility: hidden; }
+body.my-turn .card:not(.up):not(.gone) .back:active { filter: brightness(1.2); }
+
+/* ---- result ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-panel {
+  background: var(--felt-dark);
+  border-radius: 16px;
+  padding: 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.card-panel h1 { font-size: 2.2rem; }
+.score { margin: 0; font-size: 1.4rem; color: var(--muted); }
+
+/* ---- misc ---- */
+body.offline .bar { opacity: .4; }
+.rotate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--felt);
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  color: var(--accent);
+}
+@media (orientation: portrait) {
+  body.room .rotate { display: flex; }
+}

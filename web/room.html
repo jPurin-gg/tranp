@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#14532d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/static/style.css">
+<title>tranp</title>
+</head>
+<body class="room">
+
+<section id="view-message" class="center" hidden>
+  <h1 id="message"></h1>
+  <a href="/" class="button secondary">部屋を作る</a>
+</section>
+
+<section id="view-wait" class="center" hidden>
+  <h1>相手を待っています</h1>
+  <p id="room-url" class="url"></p>
+  <div class="row">
+    <button id="copy" class="secondary">コピー</button>
+    <button id="share" class="primary" hidden>送る</button>
+  </div>
+</section>
+
+<section id="view-game" hidden>
+  <header class="bar">
+    <div id="p-me" class="player"><span class="label">あなた</span><b id="s-me">0</b></div>
+    <div id="dots" class="dots"></div>
+    <div id="p-op" class="player"><span class="label">相手</span><b id="s-op">0</b></div>
+  </header>
+  <div class="stage">
+    <button id="prev" class="nav" aria-label="前の区画">‹</button>
+    <div id="board" class="board"></div>
+    <button id="next" class="nav" aria-label="次の区画">›</button>
+  </div>
+</section>
+
+<section id="view-result" class="overlay" hidden>
+  <div class="card-panel">
+    <h1 id="result"></h1>
+    <p id="result-score" class="score"></p>
+    <button id="rematch" class="primary">もう一回</button>
+  </div>
+</section>
+
+<div id="rotate" class="rotate" aria-hidden="true">⟳</div>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>
