@@ -3,16 +3,20 @@
 //	POST /api/rooms                  create a room -> {"id": "..."}
 //	POST /api/rooms/{id}/join        take a seat (sets the seat cookie) -> {"seat": 0|1}
 //	GET  /api/rooms/{id}/events      SSE stream of snapshots
-//	POST /api/rooms/{id}/flip        {"index": n}
-//	POST /api/rooms/{id}/region      {"region": n}
-//	POST /api/rooms/{id}/rematch
+//	POST /api/rooms/{id}/flip        {"seq": n, "index": n}
+//	POST /api/rooms/{id}/region      {"seq": n, "region": n}
+//	POST /api/rooms/{id}/rematch     {"seq": n}
+//
+// Every snapshot carries "seq"; an action must echo the seq it was decided
+// on, otherwise it is rejected with 409 (the client simply waits for the
+// next snapshot).
 package server
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -41,7 +45,7 @@ func New(opt Options) *Server {
 	if opt.Log == nil {
 		opt.Log = slog.Default()
 	}
-	s := &Server{rooms: newRooms(), opt: opt, mux: http.NewServeMux()}
+	s := &Server{rooms: newRooms(maxRooms), opt: opt, mux: http.NewServeMux()}
 	static, err := fs.Sub(web.Files, ".")
 	if err != nil {
 		panic(err)
@@ -111,12 +115,15 @@ func (s *Server) page(name string) http.HandlerFunc {
 
 const maxRooms = 1000
 
+// cookieTTL outlives any game; the cookie is refreshed on every join.
+const cookieTTL = 24 * time.Hour
+
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
-	if s.rooms.count() >= maxRooms {
-		writeError(w, http.StatusServiceUnavailable, "too many rooms")
+	rm, err := s.rooms.create(time.Now())
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
 		return
 	}
-	rm := s.rooms.create()
 	s.opt.Log.Info("room created", "room", rm.id)
 	writeJSON(w, http.StatusCreated, map[string]string{"id": rm.id})
 }
@@ -153,16 +160,16 @@ func (s *Server) handleJoin(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	seat, token, ok := rm.join(s.token(r, rm))
-	if !ok {
-		writeError(w, http.StatusConflict, "room is full")
+	seat, token, err := rm.join(s.token(r, rm))
+	if err != nil {
+		writeGameError(w, err)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName(rm.id),
 		Value:    token,
 		Path:     "/",
-		MaxAge:   int(roomTTL / time.Second),
+		MaxAge:   int(cookieTTL / time.Second),
 		HttpOnly: true,
 		Secure:   s.opt.SecureCookie,
 		SameSite: http.SameSiteLaxMode,
@@ -180,27 +187,29 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "not seated")
 		return
 	}
-	fl, ok := w.(http.Flusher)
-	if !ok {
-		writeError(w, http.StatusInternalServerError, "streaming unsupported")
+	ch, first, err := rm.subscribe()
+	if err != nil {
+		writeGameError(w, err)
 		return
 	}
+	defer rm.unsubscribe(ch)
 	h := w.Header()
 	h.Set("Content-Type", "text/event-stream")
 	h.Set("Cache-Control", "no-cache")
 	h.Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 
-	ch, first := rm.subscribe()
-	defer rm.unsubscribe(ch)
-	send := func(b []byte) bool {
-		if _, err := fmt.Fprintf(w, "data: %s\n\n", b); err != nil {
+	rc := http.NewResponseController(w)
+	// A stalled connection must not hold the subscription forever: every
+	// write gets its own deadline.
+	write := func(s string) bool {
+		rc.SetWriteDeadline(time.Now().Add(10 * time.Second))
+		if _, err := io.WriteString(w, s); err != nil {
 			return false
 		}
-		fl.Flush()
-		return true
+		return rc.Flush() == nil
 	}
-	if !send(first) {
+	if !write("data: " + string(first) + "\n\n") {
 		return
 	}
 	// Heartbeat keeps the connection alive through proxies (Cloudflare drops
@@ -212,14 +221,13 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case b, open := <-ch:
-			if !open || !send(b) {
+			if !open || !write("data: "+string(b)+"\n\n") {
 				return
 			}
 		case <-ping.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
+			if !write(": ping\n\n") {
 				return
 			}
-			fl.Flush()
 		}
 	}
 }
@@ -235,12 +243,13 @@ func (s *Server) handleFlip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Index int `json:"index"`
+		Seq   uint64 `json:"seq"`
+		Index int    `json:"index"`
 	}
 	if !readJSON(w, r, &body) {
 		return
 	}
-	if err := rm.flip(seat, body.Index); err != nil {
+	if err := rm.flip(seat, body.Index, body.Seq); err != nil {
 		writeGameError(w, err)
 		return
 	}
@@ -258,12 +267,13 @@ func (s *Server) handleRegion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Region int `json:"region"`
+		Seq    uint64 `json:"seq"`
+		Region int    `json:"region"`
 	}
 	if !readJSON(w, r, &body) {
 		return
 	}
-	if err := rm.move(seat, body.Region); err != nil {
+	if err := rm.move(seat, body.Region, body.Seq); err != nil {
 		writeGameError(w, err)
 		return
 	}
@@ -280,7 +290,13 @@ func (s *Server) handleRematch(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "not seated")
 		return
 	}
-	if err := rm.rematch(seat); err != nil {
+	var body struct {
+		Seq uint64 `json:"seq"`
+	}
+	if !readJSON(w, r, &body) {
+		return
+	}
+	if err := rm.rematch(body.Seq); err != nil {
 		writeGameError(w, err)
 		return
 	}
@@ -291,14 +307,21 @@ func (s *Server) handleRematch(w http.ResponseWriter, r *http.Request) {
 
 func writeGameError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, game.ErrNotYourTurn), errors.Is(err, game.ErrNotPlaying), errors.Is(err, game.ErrNotFinished):
+	case errors.Is(err, game.ErrNotYourTurn), errors.Is(err, game.ErrNotPlaying), errors.Is(err, game.ErrNotFinished),
+		errors.Is(err, errStale), errors.Is(err, errRoomFull):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, errRoomClosed):
+		writeError(w, http.StatusNotFound, err.Error())
+	case errors.Is(err, errTooMany):
+		writeError(w, http.StatusTooManyRequests, err.Error())
 	default:
 		writeError(w, http.StatusBadRequest, err.Error())
 	}
 }
 
 func readJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	// Bodies are tiny; a client that trickles one must not hold the handler.
+	http.NewResponseController(w).SetReadDeadline(time.Now().Add(5 * time.Second))
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
@@ -328,9 +351,5 @@ func (sw *statusWriter) WriteHeader(code int) {
 	sw.ResponseWriter.WriteHeader(code)
 }
 
-// Flush lets the SSE handler reach the underlying flusher through the wrapper.
-func (sw *statusWriter) Flush() {
-	if f, ok := sw.ResponseWriter.(http.Flusher); ok {
-		f.Flush()
-	}
-}
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (sw *statusWriter) Unwrap() http.ResponseWriter { return sw.ResponseWriter }

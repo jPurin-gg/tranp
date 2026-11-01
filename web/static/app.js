@@ -14,6 +14,15 @@ const REGIONS = 4;
 let me = -1;
 let snap = null;
 let wasMyTurn = false;
+let busy = false; // one action in flight at a time
+
+// act sends an action decided on the current snapshot. A 409 means the
+// snapshot was stale; the next SSE message will fix the screen.
+async function act(path, body) {
+  if (busy || !snap || document.body.classList.contains('offline')) return;
+  busy = true;
+  try { await api(path, { seq: snap.seq, ...body }); } catch { /* ignore */ } finally { busy = false; }
+}
 
 function show(name) {
   for (const v of ['message', 'wait', 'game']) $(`view-${v}`).hidden = v !== name;
@@ -91,34 +100,44 @@ function render() {
   }
 }
 
-async function onCard(i) {
+function onCard(i) {
   if (!snap || snap.phase !== 'playing' || snap.turn !== me || snap.pending) return;
   const idx = snap.region * PER_REGION + i;
   if (snap.cards[idx].state !== 'down') return;
-  await api('flip', { index: idx });
+  act('flip', { index: idx });
 }
 
-async function move(delta) {
+function move(delta) {
   if (!snap || snap.phase !== 'playing' || snap.turn !== me) return;
   const region = snap.region + delta;
   if (region < 0 || region >= REGIONS) return;
-  await api('region', { region });
+  act('region', { region });
 }
 
 $('prev').addEventListener('click', () => move(-1));
 $('next').addEventListener('click', () => move(1));
-$('rematch').addEventListener('click', () => api('rematch'));
+$('rematch').addEventListener('click', () => act('rematch', {}));
 
-// Swipe left/right on the board moves region (active player only).
-let touchX = null;
+// Swipe left/right on the board moves region (active player only). A
+// recognised swipe cancels the click the browser would synthesise, so a
+// swipe that starts on a card does not also flip it.
+let touch = null;
 const stage = document.querySelector('.stage');
-stage.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
-stage.addEventListener('touchend', (e) => {
-  if (touchX === null) return;
-  const dx = e.changedTouches[0].clientX - touchX;
-  touchX = null;
-  if (Math.abs(dx) > 60) move(dx < 0 ? 1 : -1);
+stage.addEventListener('touchstart', (e) => {
+  touch = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
 }, { passive: true });
+stage.addEventListener('touchmove', () => {}, { passive: true });
+stage.addEventListener('touchend', (e) => {
+  if (!touch) return;
+  const dx = e.changedTouches[0].clientX - touch.x;
+  const dy = e.changedTouches[0].clientY - touch.y;
+  touch = null;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 2) {
+    e.preventDefault();
+    move(dx < 0 ? 1 : -1);
+  }
+}, { passive: false });
+stage.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
 
 // ---------------------------------------------------------------- wait
 
