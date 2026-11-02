@@ -140,8 +140,8 @@ body:not(.my-turn) .card { cursor: default; }
   line-height: 1;
   font-weight: 700;
 }
-.card .face .rank { font-size: 42cqh; }
-.card .face .suit { font-size: 26cqh; margin-top: 4cqh; }
+.card .face .rank { font-size: 38cqh; }
+.card .face .suit { font-size: 50cqh; margin-top: -2cqh; }
 .card .face.red { color: var(--red); }
 .card.gone { visibility: hidden; }
 body.my-turn .card:not(.up):not(.gone) .back:active { filter: brightness(1.2); }
