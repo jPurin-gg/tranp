@@ -49,6 +49,11 @@ const slots = [];
       back.className = 'back';
       const face = document.createElement('div');
       face.className = 'face';
+      const rank = document.createElement('span');
+      rank.className = 'rank';
+      const suit = document.createElement('span');
+      suit.className = 'suit';
+      face.append(rank, suit);
       inner.append(back, face);
       slot.append(inner);
       slot.addEventListener('click', () => onCard(i));
@@ -69,7 +74,8 @@ function render() {
     slot.classList.toggle('gone', c.state === 'gone');
     const face = slot.querySelector('.face');
     if (c.state === 'up') {
-      face.textContent = `${RANKS[c.rank]}${SUITS[c.suit]}`;
+      face.querySelector('.rank').textContent = RANKS[c.rank];
+      face.querySelector('.suit').textContent = SUITS[c.suit];
       face.classList.toggle('red', c.suit === 1 || c.suit === 2);
     }
   }

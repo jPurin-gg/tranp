@@ -51,7 +51,7 @@ button:disabled { opacity: .35; cursor: default; }
 }
 .url {
   margin: 0;
-  font-size: .95rem;
+  font-size: 1.15rem;
   color: var(--muted);
   word-break: break-all;
   -webkit-user-select: text;
@@ -75,8 +75,8 @@ button:disabled { opacity: .35; cursor: default; }
   border-radius: 999px;
   opacity: .55;
 }
-.player .label { font-size: .85rem; }
-.player b { font-size: 1.3rem; }
+.player .label { font-size: 1.05rem; }
+.player b { font-size: 1.7rem; }
 .player.active { opacity: 1; background: rgba(255,255,255,.15); box-shadow: 0 0 0 2px var(--accent); }
 .dots { display: flex; gap: 8px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.3); }
@@ -91,9 +91,9 @@ button:disabled { opacity: .35; cursor: default; }
   min-height: 0;
 }
 .nav {
-  width: 40px;
+  width: 44px;
   padding: 0;
-  font-size: 2rem;
+  font-size: 2.8rem;
   line-height: 1;
   background: transparent;
   color: var(--ink);
@@ -106,7 +106,7 @@ button:disabled { opacity: .35; cursor: default; }
   gap: 8px;
   min-height: 0;
 }
-.slot { perspective: 600px; }
+.slot { perspective: 600px; container-type: size; }
 .card { cursor: pointer; }
 body:not(.my-turn) .card { cursor: default; }
 .card .inner {
@@ -134,11 +134,14 @@ body:not(.my-turn) .card { cursor: default; }
   color: #111;
   transform: rotateY(180deg);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1.1rem, 4.5vh, 2rem);
+  line-height: 1;
   font-weight: 700;
 }
+.card .face .rank { font-size: 42cqh; }
+.card .face .suit { font-size: 26cqh; margin-top: 4cqh; }
 .card .face.red { color: var(--red); }
 .card.gone { visibility: hidden; }
 body.my-turn .card:not(.up):not(.gone) .back:active { filter: brightness(1.2); }
