@@ -78,9 +78,14 @@ button:disabled { opacity: .35; cursor: default; }
 .player .label { font-size: 1.05rem; }
 .player b { font-size: 1.7rem; }
 .player.active { opacity: 1; background: rgba(255,255,255,.15); box-shadow: 0 0 0 2px var(--accent); }
-.dots { display: flex; gap: 8px; }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.3); }
-.dot.on { background: var(--accent); }
+.map {
+  display: grid;
+  grid-template-columns: repeat(2, 22px);
+  grid-template-rows: repeat(2, 13px);
+  gap: 3px;
+}
+.map span { background: rgba(255,255,255,.3); border-radius: 3px; }
+.map span.on { background: var(--accent); }
 
 .stage {
   flex: 1;
@@ -90,14 +95,22 @@ button:disabled { opacity: .35; cursor: default; }
   padding: 4px 4px 8px;
   min-height: 0;
 }
-.nav {
+.side {
   width: 44px;
+  display: flex;
+  flex-direction: column;
+}
+.nav {
+  flex: 1;
+  width: 100%;
   padding: 0;
-  font-size: 2.8rem;
+  font-size: 2.2rem;
   line-height: 1;
   background: transparent;
   color: var(--ink);
+  border-radius: 8px;
 }
+.nav:nth-child(2) { font-size: 2.8rem; }
 .board {
   flex: 1;
   display: grid;

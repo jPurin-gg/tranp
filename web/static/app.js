@@ -10,6 +10,9 @@ const RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const PER_REGION = 13;
 const REGIONS = 4;
+// Regions sit in a 2x2 grid: 0 1 / 2 3.
+const COLS = 2;
+const regionAt = (col, row) => row * COLS + col;
 
 let me = -1;
 let snap = null;
@@ -84,15 +87,10 @@ function render() {
   $('p-me').classList.toggle('active', myTurn);
   $('p-op').classList.toggle('active', snap.phase === 'playing' && snap.turn !== me);
   document.body.classList.toggle('my-turn', myTurn);
-  $('prev').disabled = !myTurn || snap.region === 0;
-  $('next').disabled = !myTurn || snap.region === REGIONS - 1;
-  const dots = $('dots');
-  dots.replaceChildren();
-  for (let r = 0; r < REGIONS; r++) {
-    const d = document.createElement('span');
-    d.className = r === snap.region ? 'dot on' : 'dot';
-    dots.append(d);
+  for (const b of document.querySelectorAll('.nav')) {
+    b.disabled = !myTurn || target(Number(b.dataset.dx), Number(b.dataset.dy)) < 0;
   }
+  $('map').querySelectorAll('span').forEach((cell, r) => cell.classList.toggle('on', r === snap.region));
   if (myTurn && !wasMyTurn && navigator.vibrate) navigator.vibrate(60);
   wasMyTurn = myTurn;
 
@@ -113,20 +111,30 @@ function onCard(i) {
   act('flip', { index: idx });
 }
 
-function move(delta) {
+// target returns the region one step away, or -1 at the edge.
+function target(dx, dy) {
+  if (!snap) return -1;
+  const col = snap.region % COLS + dx;
+  const row = Math.floor(snap.region / COLS) + dy;
+  if (col < 0 || col >= COLS || row < 0 || row >= REGIONS / COLS) return -1;
+  return regionAt(col, row);
+}
+
+function move(dx, dy) {
   if (!snap || snap.phase !== 'playing' || snap.turn !== me) return;
-  const region = snap.region + delta;
-  if (region < 0 || region >= REGIONS) return;
+  const region = target(dx, dy);
+  if (region < 0) return;
   act('region', { region });
 }
 
-$('prev').addEventListener('click', () => move(-1));
-$('next').addEventListener('click', () => move(1));
+for (const b of document.querySelectorAll('.nav')) {
+  b.addEventListener('click', () => move(Number(b.dataset.dx), Number(b.dataset.dy)));
+}
 $('rematch').addEventListener('click', () => act('rematch', {}));
 
-// Swipe left/right on the board moves region (active player only). A
-// recognised swipe cancels the click the browser would synthesise, so a
-// swipe that starts on a card does not also flip it.
+// Swiping on the board moves one region in that direction (active player
+// only). A recognised swipe cancels the click the browser would synthesise,
+// so a swipe that starts on a card does not also flip it.
 let touch = null;
 const stage = document.querySelector('.stage');
 stage.addEventListener('touchstart', (e) => {
@@ -138,10 +146,11 @@ stage.addEventListener('touchend', (e) => {
   const dx = e.changedTouches[0].clientX - touch.x;
   const dy = e.changedTouches[0].clientY - touch.y;
   touch = null;
-  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 2) {
-    e.preventDefault();
-    move(dx < 0 ? 1 : -1);
-  }
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  if (Math.max(ax, ay) < 60 || Math.max(ax, ay) < Math.min(ax, ay) * 2) return;
+  e.preventDefault();
+  if (ax > ay) move(dx < 0 ? 1 : -1, 0);
+  else move(0, dy < 0 ? 1 : -1);
 }, { passive: false });
 stage.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
 
