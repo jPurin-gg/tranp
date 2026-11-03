@@ -88,7 +88,7 @@ function render() {
   $('p-op').classList.toggle('active', snap.phase === 'playing' && snap.turn !== me);
   document.body.classList.toggle('my-turn', myTurn);
   for (const b of document.querySelectorAll('.nav')) {
-    b.disabled = !myTurn || target(Number(b.dataset.dx), Number(b.dataset.dy)) < 0;
+    b.hidden = !myTurn || target(Number(b.dataset.dx), Number(b.dataset.dy)) < 0;
   }
   $('map').querySelectorAll('span').forEach((cell, r) => cell.classList.toggle('on', r === snap.region));
   if (myTurn && !wasMyTurn && navigator.vibrate) navigator.vibrate(60);
