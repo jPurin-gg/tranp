@@ -28,18 +28,14 @@
 
 <section id="view-game" hidden>
   <header class="bar">
-    <div class="corner">
-      <div id="p-me" class="player"><span class="label">あなた</span><b id="s-me">0</b></div>
-      <div id="map" class="map"><span></span><span></span><span></span><span></span></div>
-    </div>
-    <button id="up" class="nav" data-dx="0" data-dy="-1" aria-label="上の区画" hidden>▲</button>
-    <div class="corner right">
-      <div id="p-op" class="player"><span class="label">相手</span><b id="s-op">0</b></div>
-    </div>
+    <div id="p-me" class="player"><span class="label">あなた</span><b id="s-me">0</b></div>
+    <div id="map" class="map"><span></span><span></span><span></span><span></span></div>
+    <div id="p-op" class="player"><span class="label">相手</span><b id="s-op">0</b></div>
   </header>
   <div class="stage">
-    <button id="left" class="nav" data-dx="-1" data-dy="0" aria-label="左の区画" hidden>◀</button>
     <div id="board" class="board"></div>
+    <button id="up" class="nav" data-dx="0" data-dy="-1" aria-label="上の区画" hidden>▲</button>
+    <button id="left" class="nav" data-dx="-1" data-dy="0" aria-label="左の区画" hidden>◀</button>
     <button id="right" class="nav" data-dx="1" data-dy="0" aria-label="右の区画" hidden>▶</button>
     <button id="down" class="nav" data-dx="0" data-dy="1" aria-label="下の区画" hidden>▼</button>
   </div>
