@@ -41,35 +41,46 @@ function message(text) {
 const slots = [];
 (function buildBoard() {
   const board = $('board');
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < PER_REGION; i++) {
     const slot = document.createElement('div');
-    slot.className = 'slot';
-    if (i < PER_REGION) {
-      slot.classList.add('card');
-      const inner = document.createElement('div');
-      inner.className = 'inner';
-      const back = document.createElement('div');
-      back.className = 'back';
-      const face = document.createElement('div');
-      face.className = 'face';
-      const rank = document.createElement('span');
-      rank.className = 'rank';
-      const suit = document.createElement('span');
-      suit.className = 'suit';
-      face.append(rank, suit);
-      inner.append(back, face);
-      slot.append(inner);
-      slot.addEventListener('click', () => onCard(i));
-    }
+    slot.className = 'slot card';
+    const inner = document.createElement('div');
+    inner.className = 'inner';
+    const back = document.createElement('div');
+    back.className = 'back';
+    const face = document.createElement('div');
+    face.className = 'face';
+    const rank = document.createElement('span');
+    rank.className = 'rank';
+    const suit = document.createElement('span');
+    suit.className = 'suit';
+    face.append(rank, suit);
+    inner.append(back, face);
+    slot.append(inner);
+    slot.addEventListener('click', () => onCard(i));
     board.append(slot);
     slots.push(slot);
   }
 })();
 
+// The board is 7x2. One cell in the middle column is left for the up/down
+// button: bottom row while in the top regions, top row while in the bottom
+// regions. Cards fill the other 13 cells in reading order, so both phones
+// lay the region out the same way.
+const BOARD_COLS = 7;
+function layout() {
+  const hole = snap.region < COLS ? BOARD_COLS + 3 : 3;
+  slots.forEach((slot, i) => {
+    const cell = i < hole ? i : i + 1;
+    slot.style.gridArea = `${Math.floor(cell / BOARD_COLS) + 1} / ${cell % BOARD_COLS + 1}`;
+  });
+}
+
 function render() {
   if (!snap) return;
   const myTurn = snap.phase === 'playing' && snap.turn === me;
   const base = snap.region * PER_REGION;
+  layout();
   for (let i = 0; i < PER_REGION; i++) {
     const c = snap.cards[base + i];
     const slot = slots[i];

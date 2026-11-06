@@ -102,9 +102,9 @@ button:disabled { opacity: .35; cursor: default; }
   gap: 8px;
   min-height: 0;
 }
-/* Move buttons sit on the middle of each edge, over the cards. */
+/* Up/down buttons take one cell of the middle column; left/right sit on
+   the side edges over the cards. */
 .nav {
-  position: absolute;
   width: 96px;
   height: 64px;
   padding: 0;
@@ -119,12 +119,14 @@ button:disabled { opacity: .35; cursor: default; }
   align-items: center;
   justify-content: center;
 }
-#up { top: -6px; left: 50%; transform: translateX(-50%); }
-#down { bottom: 0; left: 50%; transform: translateX(-50%); }
-#left { left: 0; top: 50%; width: 64px; height: 96px; transform: translateY(-50%); }
-#right { right: 0; top: 50%; width: 64px; height: 96px; transform: translateY(-50%); }
+#up { grid-area: 1 / 4; }
+#down { grid-area: 2 / 4; }
+#up, #down { width: 100%; height: 72px; place-self: center; }
+#left, #right { position: absolute; top: 50%; width: 64px; height: 96px; transform: translateY(-50%); }
+#left { left: 0; }
+#right { right: 0; }
 .nav:active { filter: brightness(1.12); box-shadow: 0 2px 0 rgba(0,0,0,.4); }
-#up:active, #down:active { transform: translateX(-50%) translateY(2px); }
+#up:active, #down:active { transform: translateY(2px); }
 #left:active, #right:active { transform: translateY(calc(-50% + 2px)); }
 .slot { perspective: 600px; container-type: size; }
 .card { cursor: pointer; }
